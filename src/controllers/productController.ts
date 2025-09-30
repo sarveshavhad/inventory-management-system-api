@@ -3,6 +3,7 @@ import {Product, products} from "../models/product";
 
 import { v4 as uuidv4 } from "uuid";
 
+
 //CREATE
 export const createProduct = (req: Request,res: Response) => {
     
@@ -21,8 +22,7 @@ export const createProduct = (req: Request,res: Response) => {
 
     };
 
-    products.push(product);
-    console.log("Product created:", product);
+    products.push(product);    
     res.status(201).json(product);
 };
 
@@ -69,5 +69,44 @@ export const deleteProduct = (req: Request, res: Response) => {
     products.splice(index,1);
     res.status(204).send();
 };
+
+//INCREASE THE STOCK QUANTITY
+export const increaseStock = (req: Request, res:Response) => {
+    const product = products.find(p => p.id === req.params.id);
+    if(!product) return res.status(404).json({error: "Product not found"});
+
+    const {quantity} = req.body;
+    if(!quantity || quantity <= 0) return res.status(400).json({error: "Invalid Quantity"});
+
+    product.stock_quantity += quantity;
+    res.json(product);
+
+};
+
+//DECREASE THE STOCK QUANTITY
+export const decreaseStock = (req: Request, res:Response) => {
+    const product = products.find(p => p.id === req.params.id);
+    if(!product) return res.status(404).json("Product not found");
+
+    const {quantity} = req.body;
+    if(!quantity || quantity <= 0) return res.status(400).json("Invalid Quantity");
+
+    if(product.stock_quantity < quantity){
+        return res.status(400).json("Insufficient Stock!!");
+    }
+
+    product.stock_quantity -= quantity;
+    res.json(product);
+};
+
+//LOW STOCK PRODUCT
+export const getLowStockProducts = (req: Request, res: Response) => {
+    const lowStock = products.filter(
+        p => p.low_stock_threshold !== undefined && p.stock_quantity <= p.low_stock_threshold!        
+    );
+    res.json(lowStock);
+}
+
+
 
 
