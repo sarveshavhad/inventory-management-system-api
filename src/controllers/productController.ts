@@ -1,29 +1,38 @@
 import { Request, Response } from "express";
-import {Product, products} from "../models/product";
+import { Product, products } from "../models/product";
 
 import { v4 as uuidv4 } from "uuid";
 
 
-//CREATE
-export const createProduct = (req: Request,res: Response) => {
+//CREATE(modified to support bulk creation)
+export const createProduct = (req: Request, res: Response) => {
+    const body = req.body;
+    const items = Array.isArray(body) ? body : [body];
+    const createdProducts: Product[] = [];
     
-    const {name, description, stock_quantity, low_stock_threshold } = req.body;
+    for (const item of items) {
+        const { name, description, stock_quantity, low_stock_threshold } = item;
 
-    if(!name || !description || stock_quantity === undefined || stock_quantity < 0){
-        return res.status(400).json({error: "Invalid Product Data"});
+
+        if (!name || !description || stock_quantity === undefined || stock_quantity < 0) {
+            return res.status(400).json({ error: "Invalid Product Data" });
+        }
+
+        const product: Product = {
+            id: uuidv4(),
+            name,
+            description,
+            stock_quantity,
+            low_stock_threshold,
+
+        };
+
+        products.push(product);
+        createdProducts.push(product)
     }
 
-    const product: Product ={
-        id:uuidv4(),
-        name,
-        description,
-        stock_quantity,
-        low_stock_threshold,
-
-    };
-
-    products.push(product);    
-    res.status(201).json(product);
+    
+    res.status(201).json(createdProducts);
 };
 
 //READ
@@ -31,24 +40,20 @@ export const getProducts = (req: Request, res: Response) => {
     res.json(products);
 };
 
-export const getProductById = (req: Request, res: Response) => {
-    console.log("Products:", products);
-    console.log("Requested ID:", req.params.id);
+export const getProductById = (req: Request, res: Response) => {    
     const product = products.find(p => p.id === req.params.id);
-    if(!product) return res.status(404).json({error: "Product not found"});
+    if (!product) return res.status(404).json({ error: "Product not found" });
     res.json(product);
 };
 
 //UPDATE
 export const updateProduct = (req: Request, res: Response) => {
-    console.log("Products:", products);
-    console.log("Requested ID:", req.params.id);
     const product = products.find(p => p.id === req.params.id);
-    if(!product) return res.status(404).json({error: "Product not found"});
-    const {name, description, stock_quantity, low_stock_threshold} = req.body;
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    const { name, description, stock_quantity, low_stock_threshold } = req.body;
 
-    if(stock_quantity !== undefined && stock_quantity < 0){
-        return res.status(400).json({error: "Stock quantity cannot be negative"});
+    if (stock_quantity !== undefined && stock_quantity < 0) {
+        return res.status(400).json({ error: "Stock quantity cannot be negative" });
     }
 
     product.name = name ?? product.name;
@@ -64,19 +69,19 @@ export const updateProduct = (req: Request, res: Response) => {
 //DELETE
 export const deleteProduct = (req: Request, res: Response) => {
     const index = products.findIndex(p => p.id === req.params.id);
-    if(index === -1) return res.status(404).json({error: "Product not found"});
+    if (index === -1) return res.status(404).json({ error: "Product not found" });
 
-    products.splice(index,1);
+    products.splice(index, 1);
     res.status(204).send();
 };
 
 //INCREASE THE STOCK QUANTITY
-export const increaseStock = (req: Request, res:Response) => {
+export const increaseStock = (req: Request, res: Response) => {
     const product = products.find(p => p.id === req.params.id);
-    if(!product) return res.status(404).json({error: "Product not found"});
+    if (!product) return res.status(404).json({ error: "Product not found" });
 
-    const {quantity} = req.body;
-    if(!quantity || quantity <= 0) return res.status(400).json({error: "Invalid Quantity"});
+    const { quantity } = req.body;
+    if (!quantity || quantity <= 0) return res.status(400).json({ error: "Invalid Quantity" });
 
     product.stock_quantity += quantity;
     res.json(product);
@@ -84,14 +89,14 @@ export const increaseStock = (req: Request, res:Response) => {
 };
 
 //DECREASE THE STOCK QUANTITY
-export const decreaseStock = (req: Request, res:Response) => {
+export const decreaseStock = (req: Request, res: Response) => {
     const product = products.find(p => p.id === req.params.id);
-    if(!product) return res.status(404).json("Product not found");
+    if (!product) return res.status(404).json("Product not found");
 
-    const {quantity} = req.body;
-    if(!quantity || quantity <= 0) return res.status(400).json("Invalid Quantity");
+    const { quantity } = req.body;
+    if (!quantity || quantity <= 0) return res.status(400).json("Invalid Quantity");
 
-    if(product.stock_quantity < quantity){
+    if (product.stock_quantity < quantity) {
         return res.status(400).json("Insufficient Stock!!");
     }
 
@@ -102,11 +107,7 @@ export const decreaseStock = (req: Request, res:Response) => {
 //LOW STOCK PRODUCT
 export const getLowStockProducts = (req: Request, res: Response) => {
     const lowStock = products.filter(
-        p => p.low_stock_threshold !== undefined && p.stock_quantity <= p.low_stock_threshold!        
-    );
+        p => p.low_stock_threshold !== undefined && p.stock_quantity <= p.low_stock_threshold!
+    );    
     res.json(lowStock);
-}
-
-
-
-
+};
